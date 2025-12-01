@@ -27,9 +27,9 @@ class TestSupportAPISimulation extends PerformanceTestRunner {
   def generateReportInformationForTheSubmission(): Iterator[Map[String, String]] =
     Iterator.continually(
       Map(
-        "zRef" -> generateRandomISAReference(1, 500),
-        "taxYear"             -> getTaxYear,
-        "month"               -> getMonth
+        "zRef"    -> generateRandomISAReference(1, 500),
+        "taxYear" -> getTaxYear,
+        "month"   -> getMonth
       )
     )
 
@@ -40,8 +40,7 @@ class TestSupportAPISimulation extends PerformanceTestRunner {
     generateReportInformationForTheSubmission()
   ).actionBuilders: _*) withRequests (
     getBearerToken,
-    generateReconciliationReportScenario,
-    getReportingResultsSummary
+    generateReconciliationReportScenario
   )
 
   runSimulation()

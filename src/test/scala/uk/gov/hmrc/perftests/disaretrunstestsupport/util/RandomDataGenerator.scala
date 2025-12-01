@@ -26,10 +26,8 @@ object RandomDataGenerator {
     f"Z$num%04d"
   }
 
-  def getMonth: String = {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM")
-    LocalDate.now().format(dateFormatter).toUpperCase
-  }
+  def getMonth: String =
+    LocalDate.now().format(DateTimeFormatter.ofPattern("MMM")).toUpperCase
 
   def getTaxYear: String = {
     val currentYear       = java.time.Year.now.getValue
