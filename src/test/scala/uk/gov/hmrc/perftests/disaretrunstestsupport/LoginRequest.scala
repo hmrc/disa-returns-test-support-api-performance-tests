@@ -37,7 +37,7 @@ object LoginRequest {
       "key": "HMRC-DISA-ORG",
       "identifiers": [{
          "key":"ZREF",
-         "value":"#{isaManagerReference}"
+         "value":"#{zRef}"
       }],
       "state": "Activated"
     }

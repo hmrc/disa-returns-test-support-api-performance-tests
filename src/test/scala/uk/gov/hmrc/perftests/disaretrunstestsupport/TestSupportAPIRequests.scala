@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ object TestSupportAPIRequests extends ServicesConfiguration {
 
   val generateReconciliationReportScenario: HttpRequestBuilder =
     http("Generate Reconciliation Report")
-      .post(s"$disaReturnsTestSupportBaseUrl/#{isaManagerReference}/2025-26/#{month}/$testSupportPath")
+      .post(s"$disaReturnsTestSupportBaseUrl/#{zRef}/2025-26/#{month}/$testSupportPath")
       .headers(headerWithJsonContentType)
       .body(StringBody(generateReconciliationReportPayload))
       .check(status.is(204))
 
   val getReportingResultsSummary: HttpRequestBuilder =
     http("Get Reporting Results Summary")
-      .get(s"$disaReturnsHost$disaReturnsRoute#{isaManagerReference}/2025-26/#{month}$reportingResultsSummaryPath")
+      .get(s"$disaReturnsHost$disaReturnsRoute#{zRef}/2025-26/#{month}$reportingResultsSummaryPath")
       .headers(headerOnlyWithBearerToken)
       .check(status.is(200))
 }
