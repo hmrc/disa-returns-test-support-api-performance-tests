@@ -2,7 +2,7 @@
 
 # disa-returns-test-support-api-performance-tests
 
-Performance test suite for the `<dDISA returns test support api>`, using [performance-test-runner](https://github.com/hmrc/performance-test-runner) under the hood.
+Performance test suite for the `<DISA returns test support api>`, using [performance-test-runner](https://github.com/hmrc/performance-test-runner) under the hood.
 
 ## Pre-requisites
 
