@@ -50,6 +50,6 @@ object LoginRequest {
       .body(StringBody(authRequestPayload))
       .asJson
       .check(status.is(201))
-      .check(header(HttpHeaderNames.Authorization).saveAs("bearerToken"))
+      .check(headerRegex(HttpHeaderNames.Authorization, "(Bearer\\s+[^,]+)").saveAs("bearerToken"))
       .silent
 }
