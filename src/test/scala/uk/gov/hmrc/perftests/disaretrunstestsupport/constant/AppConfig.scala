@@ -19,11 +19,7 @@ package uk.gov.hmrc.perftests.disaretrunstestsupport.constant
 import uk.gov.hmrc.performance.conf.ServicesConfiguration
 
 object AppConfig extends ServicesConfiguration {
-  val disaReturnsHost: String               = baseUrlFor("disa-returns")
   val authHost: String                      = baseUrlFor("auth-login-api")
-  val disaReturnsRoute: String              = "/monthly/"
   val disaReturnsTestSupportBaseUrl: String = baseUrlFor("disa-returns-test-support-api")
-  val testSupportPath: String               = "/reconciliation"
-  val reportingResultsSummaryPath: String   = "/results/summary"
   val ggSignInUrl                           = s"$authHost/government-gateway/session/login"
 }

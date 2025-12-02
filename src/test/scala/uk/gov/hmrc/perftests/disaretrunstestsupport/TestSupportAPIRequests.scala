@@ -34,7 +34,7 @@ object TestSupportAPIRequests extends ServicesConfiguration {
 
   val generateReconciliationReportScenario: HttpRequestBuilder =
     http("Generate Reconciliation Report")
-      .post(s"$disaReturnsTestSupportBaseUrl/#{zRef}/2025-26/#{month}/$testSupportPath")
+      .post(s"$disaReturnsTestSupportBaseUrl/#{zRef}/#{taxYear}/#{month}/reconciliation")
       .headers(headerWithJsonContentType)
       .body(StringBody(generateReconciliationReportPayload))
       .check(status.is(204))
