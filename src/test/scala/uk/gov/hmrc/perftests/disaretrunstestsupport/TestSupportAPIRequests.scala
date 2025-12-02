@@ -21,7 +21,7 @@ import io.gatling.http.Predef._
 import io.gatling.http.request.builder.HttpRequestBuilder
 import uk.gov.hmrc.performance.conf.ServicesConfiguration
 import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.AppConfig._
-import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.Headers.headerWithJsonContentType
+import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.Headers.headers
 
 object TestSupportAPIRequests extends ServicesConfiguration {
 
@@ -35,7 +35,7 @@ object TestSupportAPIRequests extends ServicesConfiguration {
   val generateReconciliationReportScenario: HttpRequestBuilder =
     http("Generate Reconciliation Report")
       .post(s"$disaReturnsTestSupportBaseUrl/#{zRef}/#{taxYear}/#{month}/reconciliation")
-      .headers(headerWithJsonContentType)
+      .headers(headers)
       .body(StringBody(generateReconciliationReportPayload))
       .check(status.is(204))
 }

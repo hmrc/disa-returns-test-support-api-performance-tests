@@ -17,12 +17,9 @@
 package uk.gov.hmrc.perftests.disaretrunstestsupport.constant
 
 object Headers {
-  val headerOnlyWithBearerToken: Map[String, String] = Map(
+  val headers: Map[String, String] = Map(
+    "Content-Type"  -> "application/json",
     "Authorization" -> "#{bearerToken}"
-  )
-
-  val headerWithJsonContentType: Map[String, String] = Map(
-    "Content-Type" -> "application/json"
   )
 
 }
