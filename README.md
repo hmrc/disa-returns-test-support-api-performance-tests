@@ -39,7 +39,7 @@ Cleanup runs before and after the simulation using `POST` requests with `{"zRefe
 - shared pool: `/test-only/reconciliation-report-data/cleanup` on `DISA_RETURNS_STUBS`
 - shared pool: `/test-only/reporting-window-overrides/cleanup` on `DISA_RETURNS_STUBS`
 
-The `DISA_RETURNS` cleanup clears any monthly-return summary state associated with the reserved reconciliation
+The `DISA_RETURNS` cleanup clears any reconciliation-report-ready callback state associated with the reserved reconciliation
 references so the shared pool starts clean. Cleanup is scoped to allocated references, attempts every applicable
 endpoint, and reports all failures together. The fixed pool and cleanup mean runs must be isolated: do not
 overlap suite executions.
@@ -73,8 +73,7 @@ thresholds; latency is assessed from the Gatling report against the agreed servi
 - `./smoke-run-tests.sh` runs every journey locally with one user per journey.
 - `./local-run-tests.sh` runs the full local performance test using the configured journey loads.
 
-Both scripts run `sbt scalafmtCheckAll scalafmtSbtCheck` before Gatling.
-They stop immediately if formatting or Gatling fails.
+Both scripts stop immediately if Gatling fails.
 
 Run either script from the repository root, for example:
 
@@ -83,6 +82,12 @@ Run either script from the repository root, for example:
 ```
 
 ### Commands
+
+Run formatting and compile the test suite before committing:
+
+```bash
+sbt precommit
+```
 
 Run smoke test (locally) as follows:
 
