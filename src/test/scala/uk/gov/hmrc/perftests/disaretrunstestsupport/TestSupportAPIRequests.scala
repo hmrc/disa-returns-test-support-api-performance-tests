@@ -23,6 +23,10 @@ import uk.gov.hmrc.performance.conf.ServicesConfiguration
 import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.AppConfig._
 import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.Headers.headers
 
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, ZoneOffset}
+import java.util.Locale
+
 object TestSupportAPIRequests extends ServicesConfiguration {
 
   val generateReconciliationReportPayload: String = s"""
@@ -34,8 +38,38 @@ object TestSupportAPIRequests extends ServicesConfiguration {
 
   val generateReconciliationReportScenario: HttpRequestBuilder =
     http("Generate Reconciliation Report")
-      .post(s"$disaReturnsTestSupportBaseUrl/#{zRef}/#{taxYear}/#{month}/reconciliation")
+      .post(s"$disaReturnsTestSupportBaseUrl/monthly/#{zRef}/reconciliation")
       .headers(headers)
       .body(StringBody(generateReconciliationReportPayload))
       .check(status.is(204))
+
+  private val today          = LocalDate.now(ZoneOffset.UTC)
+  private val taxYearStart   = if (today.getMonthValue >= 4) today.getYear else today.getYear - 1
+  private val currentTaxYear = f"$taxYearStart-${(taxYearStart + 1) % 100}%02d"
+  private val currentMonth   =
+    today.format(DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)).toUpperCase(Locale.ENGLISH)
+
+  val verifyReconciliationReportScenario: HttpRequestBuilder =
+    http("Verify Reconciliation Report")
+      .get(s"$disaReturnsStubsBaseUrl/monthly/#{zRef}/$currentTaxYear/$currentMonth/results?pageIndex=0&pageSize=10")
+      .headers(headers)
+      .check(status.is(200))
+      .check(jsonPath("$.totalRecords").ofType[Int].is(6))
+
+  val setReportingWindowOverrideScenario: HttpRequestBuilder =
+    http("Set Reporting Window Override")
+      .put(s"$disaReturnsTestSupportBaseUrl/monthly/#{zRef}/reporting-window-override")
+      .headers(headers)
+      .body(StringBody { _ =>
+        val now = Instant.now()
+        s"""{"startDate":"${now.minusSeconds(60)}","endDate":"${now.plusSeconds(3600)}"}"""
+      })
+      .check(status.is(204))
+
+  val verifyReportingWindowOpenScenario: HttpRequestBuilder =
+    http("Verify Reporting Window Is Open")
+      .get(s"$disaReturnsStubsBaseUrl/disa-returns-submission/reporting-window/status/#{zRef}")
+      .headers(headers)
+      .check(status.is(200))
+      .check(jsonPath("$.reportingWindowOpen").ofType[Boolean].is(true))
 }

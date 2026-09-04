@@ -16,32 +16,65 @@
 
 package uk.gov.hmrc.perftests.disaretrunstestsupport
 
+import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef.feed
 import uk.gov.hmrc.performance.simulation.PerformanceTestRunner
-import uk.gov.hmrc.perftests.disaretrunstestsupport.LoginRequest.getBearerToken
+import uk.gov.hmrc.perftests.disaretrunstestsupport.LoginRequest.createAuthenticatedPool
 import uk.gov.hmrc.perftests.disaretrunstestsupport.TestSupportAPIRequests._
-import uk.gov.hmrc.perftests.disaretrunstestsupport.util.RandomDataGenerator.{generateRandomISAReference, getMonth, getTaxYear}
 
 class TestSupportAPISimulation extends PerformanceTestRunner {
 
-  def generateReportInformationForTheSubmission(): Iterator[Map[String, String]] =
-    Iterator.continually(
-      Map(
-        "zRef"    -> generateRandomISAReference(1, 500),
-        "taxYear" -> getTaxYear,
-        "month"   -> getMonth
-      )
-    )
+  private val reconciliationJourneyId = "monthly-return-test-support-api-journey"
+  private val overrideJourneyId       = "reporting-window-override-journey"
+  private val configuredPoolSize      = ConfigFactory.load().getInt("perftest.zReferencePoolSize")
+  private val poolSize                = if (runSingleUserJourney) 1 else configuredPoolSize
+  require(poolSize >= 1 && poolSize <= 4000, "perftest.zReferencePoolSize must be between 1 and 4000")
+
+  private val zReferences            = (1000 until 1000 + poolSize).map(value => f"Z$value%04d")
+  private val performanceDataCleanup = new PerformanceDataCleanup
+  private var authenticatedPool      = Vector.empty[Map[String, String]]
+
+  before {
+    performanceDataCleanup.cleanup(zReferences)
+    authenticatedPool = createAuthenticatedPool(zReferences)
+  }
+
+  after {
+    performanceDataCleanup.cleanup(zReferences)
+  }
+
+  private def circularPool(rotation: Int): Iterator[Map[String, String]] = new Iterator[Map[String, String]] {
+    private var index = rotation
+
+    override def hasNext: Boolean = true
+
+    override def next(): Map[String, String] = {
+      if (authenticatedPool.isEmpty) throw new IllegalStateException("Authenticated Z-reference pool is not ready")
+      val value = authenticatedPool(index % authenticatedPool.size)
+      index = (index + 1) % authenticatedPool.size
+      value
+    }
+  }
 
   setup(
-    "monthly-return-test-support-api-journey",
+    reconciliationJourneyId,
     "Monthly Return Test Support Api Journey"
   ) withActions (feed(
-    generateReportInformationForTheSubmission()
-  ).actionBuilders: _*) withRequests (
-    getBearerToken,
-    generateReconciliationReportScenario
-  )
+    circularPool(rotation = 0)
+  ).actionBuilders: _*) withRequests ((
+    Seq(generateReconciliationReportScenario) ++
+      Option.when(runSingleUserJourney)(verifyReconciliationReportScenario)
+  ): _*)
+
+  setup(
+    overrideJourneyId,
+    "Reporting Window Override Journey"
+  ) withActions (feed(
+    circularPool(rotation = poolSize / 2)
+  ).actionBuilders: _*) withRequests ((
+    Seq(setReportingWindowOverrideScenario) ++
+      Option.when(runSingleUserJourney)(verifyReportingWindowOpenScenario)
+  ): _*)
 
   runSimulation()
 }

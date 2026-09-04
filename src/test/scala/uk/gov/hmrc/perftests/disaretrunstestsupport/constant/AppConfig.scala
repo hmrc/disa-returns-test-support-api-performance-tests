@@ -20,6 +20,8 @@ import uk.gov.hmrc.performance.conf.ServicesConfiguration
 
 object AppConfig extends ServicesConfiguration {
   val authHost: String                      = baseUrlFor("auth-login-api")
+  val disaReturnsBaseUrl: String            = baseUrlFor("disa-returns")
+  val disaReturnsStubsBaseUrl: String       = baseUrlFor("disa-returns-stubs")
   val disaReturnsTestSupportBaseUrl: String = baseUrlFor("disa-returns-test-support-api")
   val ggSignInUrl                           = s"$authHost/government-gateway/session/login"
 }
