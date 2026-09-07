@@ -59,8 +59,8 @@ class PerformanceDataCleanup {
     if (zReferences.isEmpty) None
     else
       try {
-        val values = zReferences.map(zReference => s"\"$zReference\"").mkString(",")
-        val request = HttpRequest
+        val values   = zReferences.map(zReference => s"\"$zReference\"").mkString(",")
+        val request  = HttpRequest
           .newBuilder(URI.create(url))
           .timeout(Duration.ofSeconds(30))
           .header("Content-Type", "application/json")
