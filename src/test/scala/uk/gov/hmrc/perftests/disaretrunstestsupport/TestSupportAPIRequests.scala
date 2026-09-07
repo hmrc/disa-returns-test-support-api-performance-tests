@@ -51,10 +51,10 @@ object TestSupportAPIRequests extends ServicesConfiguration {
 
   val verifyReconciliationReportScenario: HttpRequestBuilder =
     http("Verify Reconciliation Report")
-      .get(s"$disaReturnsStubsBaseUrl/monthly/#{zRef}/$currentTaxYear/$currentMonth/results?pageIndex=0&pageSize=10")
+      .get(s"$disaReturnsStubsBaseUrl/monthly/#{zRef}/$currentTaxYear/$currentMonth/results?limit=10")
       .headers(headers)
       .check(status.is(200))
-      .check(jsonPath("$.totalRecords").ofType[Int].is(6))
+      .check(jsonPath("$.returnResults[*]").count.is(6))
 
   val setReportingWindowOverrideScenario: HttpRequestBuilder =
     http("Set Reporting Window Override")
