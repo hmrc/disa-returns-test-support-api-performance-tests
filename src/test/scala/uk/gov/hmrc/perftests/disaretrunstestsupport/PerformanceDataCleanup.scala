@@ -27,29 +27,36 @@ import scala.util.control.NonFatal
 
 class PerformanceDataCleanup {
 
+  private val zReferenceCleanupBatchSize = 5000
+
   private val httpClient = HttpClient
     .newBuilder()
     .connectTimeout(Duration.ofSeconds(10))
     .build()
 
   def cleanup(zReferences: Seq[String]): Unit = {
-    val failures = Seq(
-      cleanupAt(
-        s"$disaReturnsStubsBaseUrl/test-only/reconciliation-report-data/cleanup",
-        zReferences,
-        "disa-returns-stubs reconciliation report data"
-      ),
-      cleanupAt(
-        s"$disaReturnsStubsBaseUrl/test-only/reporting-window-overrides/cleanup",
-        zReferences,
-        "disa-returns-stubs reporting-window overrides"
-      ),
-      cleanupAt(
-        s"$disaReturnsBaseUrl/test-only/monthly",
-        zReferences,
-        "disa-returns"
-      )
-    ).flatten
+    val failures = zReferences
+      .grouped(zReferenceCleanupBatchSize)
+      .flatMap { batch =>
+        Seq(
+          cleanupAt(
+            s"$disaReturnsStubsBaseUrl/test-only/reconciliation-report-data/cleanup",
+            batch,
+            "disa-returns-stubs reconciliation report data"
+          ),
+          cleanupAt(
+            s"$disaReturnsStubsBaseUrl/test-only/reporting-window-overrides/cleanup",
+            batch,
+            "disa-returns-stubs reporting-window overrides"
+          ),
+          cleanupAt(
+            s"$disaReturnsBaseUrl/test-only/monthly",
+            batch,
+            "disa-returns"
+          )
+        ).flatten
+      }
+      .toSeq
 
     if (failures.nonEmpty)
       throw new IllegalStateException(s"Performance data cleanup failed:\n${failures.mkString("\n")}")
