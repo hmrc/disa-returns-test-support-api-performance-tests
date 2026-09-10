@@ -61,7 +61,7 @@ Do **NOT** run a full performance test against staging from your local machine. 
 
 The reconciliation route no longer includes tax-year or month URL segments. Reporting-window override payloads are
 generated around the current instant. Smoke runs also verify downstream semantics directly against the current
-`DISA_RETURNS_STUBS` contracts: the reconciliation results response has `totalRecords` equal to `6`, and the overridden
+`DISA_RETURNS_STUBS` contracts: the reconciliation results response contains the six generated results, and the overridden
 reporting-window status has `reportingWindowOpen` equal to `true`. These verification reads are not included in full
 load runs.
 
