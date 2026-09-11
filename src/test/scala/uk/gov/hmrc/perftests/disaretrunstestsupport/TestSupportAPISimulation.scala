@@ -84,22 +84,22 @@ class TestSupportAPISimulation extends PerformanceTestRunner {
   setup(
     reconciliationJourneyId,
     "Monthly Return Test Support Api Journey"
-  ) withActions (feed(
-    references(offset = 0, count = reconciliationCount)
-  ).actionBuilders: _*) withRequests ((
-    Seq(generateReconciliationReportScenario) ++
-      Option.when(runSingleUserJourney)(verifyReconciliationReportScenario)
-  ): _*)
+  ).withActions(
+    feed(references(offset = 0, count = reconciliationCount)).actionBuilders*
+  ).withRequests(
+    (Seq(generateReconciliationReportScenario) ++
+      Option.when(runSingleUserJourney)(verifyReconciliationReportScenario))*
+  )
 
   setup(
     overrideJourneyId,
     "Reporting Window Override Journey"
-  ) withActions (feed(
-    references(offset = reconciliationCount, count = overrideCount)
-  ).actionBuilders: _*) withRequests ((
-    Seq(setReportingWindowOverrideScenario) ++
-      Option.when(runSingleUserJourney)(verifyReportingWindowOpenScenario)
-  ): _*)
+  ).withActions(
+    feed(references(offset = reconciliationCount, count = overrideCount)).actionBuilders*
+  ).withRequests(
+    (Seq(setReportingWindowOverrideScenario) ++
+      Option.when(runSingleUserJourney)(verifyReportingWindowOpenScenario))*
+  )
 
   runSimulation()
 }
