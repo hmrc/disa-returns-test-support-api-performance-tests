@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "disa-returns-test-support-api-performance-tests",
     version := "0.1.0-SNAPSHOT",
-    scalaVersion := "2.13.16",
+    scalaVersion := "3.3.6",
     // implicitConversions & postfixOps are Gatling recommended -language settings
     scalacOptions ++= Seq("-feature", "-language:implicitConversions", "-language:postfixOps"),
     // Enabling sbt-auto-build plugin provides DefaultBuildSettings with default `testOptions` from `sbt-settings` plugin.
