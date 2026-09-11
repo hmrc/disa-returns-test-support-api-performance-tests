@@ -28,15 +28,15 @@ import scala.util.control.NonFatal
 
 object LoginRequest {
 
-  private val BearerTokenPattern = "(?i)^Bearer\\s+\\S+$".r
+  private val bearerTokenPattern = "(?i)^Bearer\\s+\\S+$".r
 
   private val httpClient = HttpClient
     .newBuilder()
     .connectTimeout(Duration.ofSeconds(10))
     .build()
 
-  def createAuthenticatedPool(zReferences: Seq[String]): Vector[Map[String, String]] = {
-    require(zReferences.nonEmpty, "Cannot create authenticated Z-reference pool without Z-references")
+  def createAuthenticatedReferences(zReferences: Seq[String]): Vector[Map[String, String]] = {
+    require(zReferences.nonEmpty, "Cannot authenticate without Z-references")
 
     val loginZReference = zReferences.head
     val request         = HttpRequest
@@ -50,20 +50,20 @@ object LoginRequest {
       catch {
         case exception: InterruptedException =>
           Thread.currentThread().interrupt()
-          throw new IllegalStateException("Shared bearer-token login setup was interrupted", exception)
+          throw new IllegalStateException("Bearer-token login setup was interrupted", exception)
         case NonFatal(exception)             =>
-          throw new IllegalStateException(s"Shared bearer-token login setup failed: ${exception.getMessage}", exception)
+          throw new IllegalStateException(s"Bearer-token login setup failed: ${exception.getMessage}", exception)
       }
 
     if (response.statusCode() != 201)
       throw new IllegalStateException(
-        s"Shared bearer-token login setup failed: status=${response.statusCode()}, body=${response.body()}"
+        s"Bearer-token login setup failed: status=${response.statusCode()}, body=${response.body()}"
       )
 
     val bearerToken = response.headers().firstValue("Authorization").orElse("")
-    if (!BearerTokenPattern.matches(bearerToken))
+    if (!bearerTokenPattern.matches(bearerToken))
       throw new IllegalStateException(
-        "Shared bearer-token login setup failed: response did not contain a valid Authorization Bearer header"
+        "Bearer-token login setup failed: response did not contain a valid Authorization Bearer header"
       )
 
     zReferences.map(zReference => Map("zRef" -> zReference, "bearerToken" -> bearerToken)).toVector

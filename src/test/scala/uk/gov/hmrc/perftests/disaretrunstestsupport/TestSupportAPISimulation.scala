@@ -16,51 +16,76 @@
 
 package uk.gov.hmrc.perftests.disaretrunstestsupport
 
-import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef.feed
 import uk.gov.hmrc.performance.simulation.PerformanceTestRunner
-import uk.gov.hmrc.perftests.disaretrunstestsupport.LoginRequest.createAuthenticatedPool
+import uk.gov.hmrc.perftests.disaretrunstestsupport.LoginRequest.createAuthenticatedReferences
 import uk.gov.hmrc.perftests.disaretrunstestsupport.TestSupportAPIRequests._
 
 class TestSupportAPISimulation extends PerformanceTestRunner {
 
   private val reconciliationJourneyId = "monthly-return-test-support-api-journey"
   private val overrideJourneyId       = "reporting-window-override-journey"
-  private val configuredPoolSize      = ConfigFactory.load().getInt("perftest.zReferencePoolSize")
-  private val poolSize                = if (runSingleUserJourney) 1 else configuredPoolSize
-  require(poolSize >= 1 && poolSize <= 4000, "perftest.zReferencePoolSize must be between 1 and 4000")
+  private val reservedZReferences     = Set("Z1400", "Z1500", "Z1503")
+  private val namespaceSize           = 100000000 - reservedZReferences.size
 
-  private val zReferences            = (1000 until 1000 + poolSize).map(value => f"Z$value%04d")
-  private val performanceDataCleanup = new PerformanceDataCleanup
-  private var authenticatedPool      = Vector.empty[Map[String, String]]
+  private def userCount(journeyId: String): Int =
+    definitions(labels)
+      .find(_.id == journeyId)
+      .map { journey =>
+        if (runSingleUserJourney) 1
+        else {
+          val configuredRate = journey.load * loadFactor
+          val rate           =
+            if ((constantRateTime.toSeconds * configuredRate).toInt < 1)
+              1d / (constantRateTime.toSeconds - 1)
+            else configuredRate
+
+          Math.toIntExact(
+            ((0.0001d + (rate - 0.0001d) / 2) * rampUpTime.toSeconds).toLong +
+              (constantRateTime.toSeconds * rate).round +
+              ((rate + (0.0001d - rate) / 2) * rampDownTime.toSeconds).toLong
+          )
+        }
+      }
+      .getOrElse(0)
+
+  private val reconciliationCount = userCount(reconciliationJourneyId)
+  private val overrideCount       = userCount(overrideJourneyId)
+  private val totalCount          = reconciliationCount.toLong + overrideCount
+  require(
+    totalCount <= namespaceSize,
+    s"Required $totalCount Z-references exceed the $namespaceSize available references"
+  )
+
+  private val zReferences             = Iterator
+    .from(0)
+    .map(value => f"Z$value%04d")
+    .filterNot(reservedZReferences)
+    .take(totalCount.toInt)
+    .toVector
+  private val performanceDataCleanup  = new PerformanceDataCleanup
+  private var authenticatedReferences = Vector.empty[Map[String, String]]
 
   before {
     performanceDataCleanup.cleanup(zReferences)
-    authenticatedPool = createAuthenticatedPool(zReferences)
+    authenticatedReferences = createAuthenticatedReferences(zReferences)
   }
 
   after {
     performanceDataCleanup.cleanup(zReferences)
   }
 
-  private def circularPool(rotation: Int): Iterator[Map[String, String]] = new Iterator[Map[String, String]] {
-    private var index = rotation
-
-    override def hasNext: Boolean = true
-
-    override def next(): Map[String, String] = {
-      if (authenticatedPool.isEmpty) throw new IllegalStateException("Authenticated Z-reference pool is not ready")
-      val value = authenticatedPool(index % authenticatedPool.size)
-      index = (index + 1) % authenticatedPool.size
-      value
+  private def references(offset: Int, count: Int): Iterator[Map[String, String]] =
+    Iterator.range(offset, offset + count).map { index =>
+      if (authenticatedReferences.isEmpty) throw new IllegalStateException("Authenticated Z-references are not ready")
+      authenticatedReferences(index)
     }
-  }
 
   setup(
     reconciliationJourneyId,
     "Monthly Return Test Support Api Journey"
   ) withActions (feed(
-    circularPool(rotation = 0)
+    references(offset = 0, count = reconciliationCount)
   ).actionBuilders: _*) withRequests ((
     Seq(generateReconciliationReportScenario) ++
       Option.when(runSingleUserJourney)(verifyReconciliationReportScenario)
@@ -70,7 +95,7 @@ class TestSupportAPISimulation extends PerformanceTestRunner {
     overrideJourneyId,
     "Reporting Window Override Journey"
   ) withActions (feed(
-    circularPool(rotation = poolSize / 2)
+    references(offset = reconciliationCount, count = overrideCount)
   ).actionBuilders: _*) withRequests ((
     Seq(setReportingWindowOverrideScenario) ++
       Option.when(runSingleUserJourney)(verifyReportingWindowOpenScenario)

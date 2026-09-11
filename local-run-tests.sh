@@ -3,4 +3,4 @@ set -euo pipefail
 
 sbt scalafmtCheckAll scalafmtSbtCheck
 
-sbt -DrunLocal=true gatling:test
+sbt -DrunLocal=true "Gatling / test"

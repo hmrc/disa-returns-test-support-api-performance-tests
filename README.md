@@ -13,38 +13,36 @@ Start `DISA_RETURNS` services as follows:
 ```bash
 sm2 --start PUSH_PULL_NOTIFICATIONS_API --appendArgs '{"PUSH_PULL_NOTIFICATIONS_API": ["-Dallowlisted.useragents.0=api-subscription-fields","-Dallowlisted.useragents.1=disa-returns","-DvalidateHttpsCallbackUrl=false"]}'
 
-sm2 --start DISA_RETURNS_ALL --appendArgs '{"DISA_RETURNS_TEST_SUPPORT_API": ["-Dfeatures.enrolment-verification-enabled=false"]}'
+sm2 --start DISA_RETURNS_ALL --appendArgs '{
+  "DISA_RETURNS_TEST_SUPPORT_API": [
+    "-Dfeatures.enrolment-verification-enabled=false",
+    "-Dfeatures.strict-z-reference-validation-enabled=false"
+  ],
+  "DISA_RETURNS": [
+    "-Dfeatures.strict-z-reference-validation-enabled=false",
+    "-Dapplication.router=testOnlyDoNotUseInAppConf.Routes"
+  ],
+  "DISA_RETURNS_STUBS": [
+    "-Dapplication.router=testOnlyDoNotUseInAppConf.Routes"
+  ]
+}'
 ```
 
-The suite requires `DISA_RETURNS_TEST_SUPPORT_API` with enrolment verification disabled and `AUTH_LOGIN_API`, which are
-included in `DISA_RETURNS_ALL`. It
-also uses scoped cleanup endpoints in `DISA_RETURNS` and `DISA_RETURNS_STUBS`. Append
-`-Dapplication.router=testOnlyDoNotUseInAppConf.Routes` to both services when their environment does not enable
-test-only routes. Runs must not overlap because the suite reserves and cleans a fixed, finite Z-reference pool before
-and after execution.
+`DISA_RETURNS_TEST_SUPPORT_API` needs enrolment verification disabled because the suite shares one bearer token across
+Z-references. It and `DISA_RETURNS` need strict Z-reference validation disabled for references containing five to eight
+digits. The test-only routers on `DISA_RETURNS` and `DISA_RETURNS_STUBS` provide the cleanup endpoints. `AUTH_LOGIN_API`
+is also required and is included in `DISA_RETURNS_ALL`.
 
-Both journeys independently cycle through one authenticated pool beginning at `Z1000`. The reporting-window journey
-is rotated by half the pool to stagger reuse between journeys. Configure the pool with
-`-Dperftest.zReferencePoolSize=<size>`; it defaults to 500, must be between 1 and 4,000, and is forced to one for smoke
-runs. One GG bearer token is created during setup, outside measured Gatling requests, and reused by every Z-reference
-feeder entry for the complete run. Setup fails immediately if that login does not return a valid bearer token. The
-suite does not explicitly log out, so the shared session remains available throughout the run.
+Each injected user gets a unique Z-reference. The two journeys use separate finite ranges from the staging-only 4-to-8
+digit namespace. One bearer token is created during setup and shared by all references.
 
-At `loadPercentage = 1000`, each configured 10 JPS journey runs at 100 JPS and creates approximately 36,000 users over
-the configured test duration. A default 500-reference circular pool is therefore reused approximately every five
-seconds by each journey. Authentication setup makes one login request and does not add pool-size-based pacing or setup
-duration. The maximum pool size is 4,000.
+Cleanup runs before and after the simulation using bulk `POST` requests in batches of 5,000:
 
-Cleanup runs before and after the simulation using `POST` requests with `{"zReferences":[...]}`:
+- `/test-only/monthly` on `DISA_RETURNS`
+- `/test-only/reconciliation-report-data/cleanup` on `DISA_RETURNS_STUBS`
+- `/test-only/reporting-window-overrides/cleanup` on `DISA_RETURNS_STUBS`
 
-- shared pool: `/test-only/monthly` on `DISA_RETURNS`
-- shared pool: `/test-only/reconciliation-report-data/cleanup` on `DISA_RETURNS_STUBS`
-- shared pool: `/test-only/reporting-window-overrides/cleanup` on `DISA_RETURNS_STUBS`
-
-The `DISA_RETURNS` cleanup clears any reconciliation-report-ready callback state associated with the reserved reconciliation
-references so the shared pool starts clean. Cleanup is scoped to allocated references, attempts every applicable
-endpoint, and reports all failures together. The fixed pool and cleanup mean runs must be isolated: do not
-overlap suite executions.
+Cleanup is scoped to allocated references and reports all failures together. Do not overlap suite executions.
 
 ### Logging
 
@@ -66,9 +64,6 @@ generated around the current instant. Smoke runs also verify downstream semantic
 `DISA_RETURNS_STUBS` contracts: the reconciliation results response contains the six generated results, and the overridden
 reporting-window status has `reportingWindowOpen` equal to `true`. These verification reads are not included in full
 load runs.
-
-The suite asserts request success and smoke semantics. It does not define a latency SLO or invent response-time
-thresholds; latency is assessed from the Gatling report against the agreed service objective.
 
 ### Bash Scripts
 
@@ -94,19 +89,19 @@ sbt precommit
 Run smoke test (locally) as follows:
 
 ```bash
-sbt -Dperftest.runSmokeTest=true -DrunLocal=true gatling:test
+sbt -Dperftest.runSmokeTest=true -DrunLocal=true "Gatling / test"
 ```
 
 Run full performance test (locally) as follows:
 
 ```bash
-sbt -DrunLocal=true gatling:test
+sbt -DrunLocal=true "Gatling / test"
 ```
 
 Run smoke test (staging) as follows:
 
 ```bash
-sbt -Dperftest.runSmokeTest=true -DrunLocal=false gatling:test
+sbt -Dperftest.runSmokeTest=true -DrunLocal=false "Gatling / test"
 ```
 
 ## Scalafmt
