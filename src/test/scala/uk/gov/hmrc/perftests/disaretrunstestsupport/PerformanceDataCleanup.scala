@@ -18,6 +18,7 @@ package uk.gov.hmrc.perftests.disaretrunstestsupport
 
 import uk.gov.hmrc.perftests.disaretrunstestsupport.constant.AppConfig.{disaReturnsBaseUrl, disaReturnsStubsBaseUrl}
 
+import java.io.IOException
 import java.net.URI
 import java.net.http.HttpRequest.BodyPublishers
 import java.net.http.HttpResponse.BodyHandlers
@@ -27,7 +28,7 @@ import scala.util.control.NonFatal
 
 class PerformanceDataCleanup {
 
-  private val zReferenceCleanupBatchSize = 5000
+  private val zReferenceCleanupBatchSize = 1000
 
   private val httpClient = HttpClient
     .newBuilder()
@@ -73,7 +74,11 @@ class PerformanceDataCleanup {
           .header("Content-Type", "application/json")
           .POST(BodyPublishers.ofString(s"{\"zReferences\":[$values]}"))
           .build()
-        val response = httpClient.send(request, BodyHandlers.ofString())
+        val response =
+          try httpClient.send(request, BodyHandlers.ofString())
+          catch {
+            case _: IOException => httpClient.send(request, BodyHandlers.ofString())
+          }
 
         Option.when(response.statusCode() != 204)(
           s"- $service: status=${response.statusCode()}, body=${response.body()}"
